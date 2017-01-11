@@ -1,0 +1,40 @@
+<serviceGroup>
+  <service name="SimpleAAService">
+    <description>
+      This service accepts simple SAML queries and returns attributes for a given user.
+    </description>
+
+    <parameter name="ServiceClass">uk.ac.ed.epcc.simpleaa.SimpleAAService</parameter>
+    
+    <parameter name="IssuerFormat">urn:oasis:names:tc:SAML:2.0:nameid-format:entity</parameter>
+    <parameter name="IssuerValue">SimpleAAService</parameter>
+    
+    <parameter name="dburl">jdbc:mysql://localhost:3306/simpleaa</parameter>
+    <parameter name="dbuser">simpleaa</parameter>
+    <parameter name="dbpassword">simpleaa</parameter>
+    
+    <operation name="AttributeQuery">
+      <messageReceiver class="org.apache.axis2.receivers.RawXMLINOutMessageReceiver" />
+    </operation>
+  </service>
+  <service name="AADatabaseUpdater">
+    <description>
+      This service allows the database storing the attribute values to be updated.
+    </description>
+
+    <messageReceivers>
+      <messageReceiver 
+          mep="http://www.w3.org/ns/wsdl/in-only"
+	  class="org.apache.axis2.rpc.receivers.RPCInOnlyMessageReceiver"/>
+      <messageReceiver
+          mep="http://www.w3.org/ns/wsdl/in-out"
+	  class="org.apache.axis2.rpc.receivers.RPCMessageReceiver"/>
+    </messageReceivers>
+
+    <parameter name="ServiceClass">uk.ac.ed.epcc.simpleaa.AADatabaseUpdater</parameter>
+    
+    <parameter name="dburl">jdbc:mysql://localhost:3306/simpleaa</parameter>
+    <parameter name="dbuser">simpleaa</parameter>
+    <parameter name="dbpassword">simpleaa</parameter>
+  </service>
+</serviceGroup>
