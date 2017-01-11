@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.HashMap;
 import java.util.Set;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import javax.xml.stream.XMLStreamException;
 
 import org.apache.axiom.om.OMAbstractFactory;
@@ -75,7 +76,12 @@ public class SimpleAAClient {
 	OMElement issuer = fac.createOMElement("Issuer", samlNs);
 	OMAttribute issuerFormatAttr = fac.createOMAttribute("Format", null, "urn:oasis:names:tc:SAML:2.0:nameid-format:entity");
 	issuer.addAttribute(issuerFormatAttr);
-	String hostname = InetAddress.getLocalHost().getHostName();
+	String hostname = "localhost";
+	try {
+	    hostname = InetAddress.getLocalHost().getHostName();
+	}
+	catch (UnknownHostException uhe) {
+	}
 	fac.createOMText(issuer, hostname);
 	attrQuery.addChild(issuer);
 
