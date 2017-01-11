@@ -101,8 +101,106 @@ public class AADatabaseUpdater {
 	return SUCCESS;
     }
 
+    // adds a new attribute value for a user. should only be used with attributes
+    // that can have multiple values. otherwise, use setAttributeForUser
+    public int addAttributeForUser(String userName, String attrName, String attrValue) {
+	try {
+	    // get user ID first
+	    Connection con = Util.getDatabaseConnection();
+	    PreparedStatement ps = con.prepareStatement("select id from users where name=?");
+	    ps.setString(1, userName);
+	    ResultSet rs = ps.executeQuery();
+	    if (!rs.first()) {
+		ps.close();
+		con.close();
+		return USER_DOES_NOT_EXIST;
+	    }
+	    int userId = rs.getInt("id");
+	    ps.close();
+	    
+	    // get attribute ID
+	    ps = con.prepareStatement("select id from attribute_types where name=?");
+	    ps.setString(1, attrName);
+	    rs = ps.executeQuery();
+	    if (!rs.first()) {
+		ps.close();
+		con.close();
+		return ATTRIBUTE_DOES_NOT_EXIST;
+	    }
+	    int attrId = rs.getInt("id");
+	    ps.close();
+
+	    // insert new attribute value
+	    ps = con.prepareStatement("insert into user_attributes values (?, ?, ?)");
+	    ps.setInt(1, userId);
+	    ps.setInt(2, attrId);
+	    ps.setString(3, attrValue);
+	    ps.executeUpdate();
+	    ps.close();
+	    con.close();
+	}
+	catch (ClassNotFoundException cnfe) {
+	    return INTERNAL_SERVER_ERROR;
+	}
+	catch (SQLException se) {
+	    return INTERNAL_SERVER_ERROR;
+	}
+
+	return SUCCESS;
+    }
+
+    // remove an attribute value for a user
+    public int removeAttributeForUser(String userName, String attrName, String attrValue) {
+	try {
+	    // get user ID first
+	    Connection con = Util.getDatabaseConnection();
+	    PreparedStatement ps = con.prepareStatement("select id from users where name=?");
+	    ps.setString(1, userName);
+	    ResultSet rs = ps.executeQuery();
+	    if (!rs.first()) {
+		ps.close();
+		con.close();
+		return USER_DOES_NOT_EXIST;
+	    }
+	    int userId = rs.getInt("id");
+	    ps.close();
+	    
+	    // get attribute ID
+	    ps = con.prepareStatement("select id from attribute_types where name=?");
+	    ps.setString(1, attrName);
+	    rs = ps.executeQuery();
+	    if (!rs.first()) {
+		ps.close();
+		con.close();
+		return ATTRIBUTE_DOES_NOT_EXIST;
+	    }
+	    int attrId = rs.getInt("id");
+	    ps.close();
+
+	    // delete the attribute value
+	    ps = con.prepareStatement("delete from user_attributes where user_id=? and attribute_id=? and value=?");
+	    ps.setInt(1, userId);
+	    ps.setInt(2, attrId);
+	    ps.setString(3, attrValue);
+	    ps.executeUpdate();
+	    ps.close();
+	    con.close();
+	}
+	catch (ClassNotFoundException cnfe) {
+	    return INTERNAL_SERVER_ERROR;
+	}
+	catch (SQLException se) {
+	    return INTERNAL_SERVER_ERROR;
+	}
+
+	return SUCCESS;
+    }
+
     // set an attribute value for a user
     // will modify the existing entry if it exists, otherwise create a new entry
+    // should only be used for attributes that have a single value! use
+    // addAttributeForUser and removeAttributeForUser for attributes that can have
+    // multiple values
     public int setAttributeForUser(String userName, String attrName, String attrValue) {
 	try {
 	    // get user ID first

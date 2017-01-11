@@ -23,7 +23,7 @@ import java.util.ArrayList;
  * database
  */
 public class AttributeResult {
-    // TODO: handle other types if necessaryx
+    // TODO: handle other types if necessary
     public static final int STRING = 0;
     public static final int ARRAY = 1;
 

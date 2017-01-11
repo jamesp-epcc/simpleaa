@@ -89,10 +89,8 @@ public class SimpleAAService {
 	OMAttribute nameAttr = fac.createOMAttribute("Name", null, attr.name);
 	// look up friendly name here
 	OMAttribute friendlyNameAttr = fac.createOMAttribute("FriendlyName", null, Util.getFriendlyName(attr.name));
-	OMAttribute nameFormatAttr = fac.createOMAttribute("NameFormat", null, "urn:oasis:names:tc:SAML:2.0:attrname-format:uri");
 	attributeElem.addAttribute(nameAttr);
 	attributeElem.addAttribute(friendlyNameAttr);
-	attributeElem.addAttribute(nameFormatAttr);
 
 	// rest depends on result type
 	OMAttribute typeAttr = null;

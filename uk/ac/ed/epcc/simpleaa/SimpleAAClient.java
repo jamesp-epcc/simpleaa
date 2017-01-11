@@ -102,8 +102,6 @@ public class SimpleAAClient {
 	if (attributes != null) {
 	    for (i = 0; i < attributes.length; i++) {
 		OMElement attribute = fac.createOMElement("Attribute", samlNs);
-		OMAttribute nameFormatAttr = fac.createOMAttribute("NameFormat", null, "urn:oasis:names:tc:SAML:2.0:attrname-format:uri");
-		attribute.addAttribute(nameFormatAttr);
 		OMAttribute nameAttr = fac.createOMAttribute("Name", null, attributes[i]);
 		attribute.addAttribute(nameAttr);
 		attrQuery.addChild(attribute);
@@ -244,6 +242,40 @@ public class SimpleAAClient {
 	}
     }
 
+    public static void addAttributeForUser(String user, String attr, String value) throws Exception {
+	AADatabaseUpdaterStub stub = new AADatabaseUpdaterStub("http://localhost:8080/axis2/services/AADatabaseUpdater");
+	AADatabaseUpdaterStub.AddAttributeForUser req = new AADatabaseUpdaterStub.AddAttributeForUser();
+	req.setArgs0(user);
+	req.setArgs1(attr);
+	req.setArgs2(value);
+	AADatabaseUpdaterStub.AddAttributeForUserResponse res = stub.addAttributeForUser(req);
+	switch (res.get_return()) {
+	case 2:
+	    throw new Exception("Internal server error");
+	case 4:
+	    throw new Exception("User name not recognised");
+	case 5:
+	    throw new Exception("Attribute name not recognised");
+	}
+    }
+
+    public static void removeAttributeForUser(String user, String attr, String value) throws Exception {
+	AADatabaseUpdaterStub stub = new AADatabaseUpdaterStub("http://localhost:8080/axis2/services/AADatabaseUpdater");
+	AADatabaseUpdaterStub.RemoveAttributeForUser req = new AADatabaseUpdaterStub.RemoveAttributeForUser();
+	req.setArgs0(user);
+	req.setArgs1(attr);
+	req.setArgs2(value);
+	AADatabaseUpdaterStub.RemoveAttributeForUserResponse res = stub.removeAttributeForUser(req);
+	switch (res.get_return()) {
+	case 2:
+	    throw new Exception("Internal server error");
+	case 4:
+	    throw new Exception("User name not recognised");
+	case 5:
+	    throw new Exception("Attribute name not recognised");
+	}
+    }
+
     public static void deleteUser(String name) throws Exception {
 	AADatabaseUpdaterStub stub = new AADatabaseUpdaterStub("http://localhost:8080/axis2/services/AADatabaseUpdater");
 	AADatabaseUpdaterStub.DeleteUser req = new AADatabaseUpdaterStub.DeleteUser();
@@ -261,7 +293,7 @@ public class SimpleAAClient {
 	int i;
 	if (args.length < 1) {
 	    System.out.println("Usage: SimpleAAClient <operation> <parameters>");
-	    System.out.println("  (valid operations are query, addattrtype, adduser, updateuserattr, deleteuser)");
+	    System.out.println("  (valid operations are query, addattrtype, adduser, updateuserattr, adduserattr, removeuserattr, deleteuser)");
 	    return;
 	}
 	String operation = args[0];
@@ -306,6 +338,20 @@ public class SimpleAAClient {
 		    return;
 		}
 		updateAttributeForUser(args[1], args[2], args[3]);
+	    }
+	    else if (operation.equals("adduserattr")) {
+		if (args.length != 4) {
+		    System.out.println("Usage: SimpleAAClient adduserattr <user name> <attribute name> <value>");
+		    return;
+		}
+		addAttributeForUser(args[1], args[2], args[3]);
+	    }
+	    else if (operation.equals("removeuserattr")) {
+		if (args.length != 4) {
+		    System.out.println("Usage: SimpleAAClient removeuserattr <user name> <attribute name> <value>");
+		    return;
+		}
+		removeAttributeForUser(args[1], args[2], args[3]);
 	    }
 	    else if (operation.equals("deleteuser")) {
 		if (args.length != 2) {
