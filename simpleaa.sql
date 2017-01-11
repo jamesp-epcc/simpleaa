@@ -166,7 +166,8 @@ INSERT INTO `attribute_types` (`id`, `name`, `friendly_name`) VALUES
 (127, 'urn:oid:2.16.840.1.113730.3.1.40', 'userSMIMECertificate'),
 (128, 'urn:oid:2.16.840.1.113730.3.1.55', 'aci'),
 (129, 'urn:oid:2.16.840.1.113730.3.1.216', 'userPKCS12'),
-(130, 'urn:oid:2.16.840.1.113730.3.1.241', 'displayName');
+(130, 'urn:oid:2.16.840.1.113730.3.1.241', 'displayName'),
+(131, 'member-of', 'member-of');
 
 -- --------------------------------------------------------
 
@@ -211,7 +212,7 @@ ALTER TABLE `users`
 -- Indexes for table `user_attributes`
 --
 ALTER TABLE `user_attributes`
- ADD PRIMARY KEY (`user_id`,`attribute_id`);
+ ADD PRIMARY KEY (`user_id`,`attribute_id`,`value`);
 
 --
 -- AUTO_INCREMENT for dumped tables

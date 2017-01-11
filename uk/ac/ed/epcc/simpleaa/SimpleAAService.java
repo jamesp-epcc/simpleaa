@@ -65,7 +65,7 @@ public class SimpleAAService {
 	else {
 	    // retrieve the attributes requested
 	    for (i = 0; i < attributeNames.size(); i++) {
-		result.add(new AttributeResult(attributeNames.get(i), Util.getAttributeForUser(subjectName, attributeNames.get(i))));
+		result.add(Util.getAttributeForUser(subjectName, attributeNames.get(i)));
 	    }
 	}
 	return result;
@@ -75,6 +75,8 @@ public class SimpleAAService {
     // this currently only supports simple scalar string attributes, but more
     // complex types could be added
     private OMElement buildAttributeXML(AttributeResult attr, OMNamespace ns) throws SQLException, ClassNotFoundException, InvalidAttributeNameException {
+	int i;
+
 	// build an XML Attribute for one attribute result
 	OMFactory fac = OMAbstractFactory.getOMFactory();
 
@@ -92,22 +94,48 @@ public class SimpleAAService {
 	attributeElem.addAttribute(friendlyNameAttr);
 	attributeElem.addAttribute(nameFormatAttr);
 
-	// create AttributeValue element
-	OMElement attributeValue = fac.createOMElement("AttributeValue", ns);
-	attributeValue.declareNamespace(xs);
-	attributeValue.declareNamespace(xsi);
-
 	// rest depends on result type
 	OMAttribute typeAttr = null;
+	OMElement attributeValue = null;
 	switch (attr.type) {
 	case AttributeResult.STRING:
+	    // create AttributeValue element
+	    attributeValue = fac.createOMElement("AttributeValue", ns);
+	    attributeValue.declareNamespace(xs);
+	    attributeValue.declareNamespace(xsi);
+
+	    // add type attribute
 	    typeAttr = fac.createOMAttribute("type", xsi, "xs:string");
+	    attributeValue.addAttribute(typeAttr);
+
+	    // add text to it
 	    fac.createOMText(attributeValue, attr.stringval);
+
+	    // add it to parent
+	    attributeElem.addChild(attributeValue);
+	    break;
+
+	case AttributeResult.ARRAY:
+	    // need to create an attribute value element for every item
+	    for (i = 0; i < attr.arrayval.length; i++) {
+		// create AttributeValue element
+		attributeValue = fac.createOMElement("AttributeValue", ns);
+		attributeValue.declareNamespace(xs);
+		attributeValue.declareNamespace(xsi);
+		
+		// add type attribute
+		typeAttr = fac.createOMAttribute("type", xsi, "xs:string");
+		attributeValue.addAttribute(typeAttr);
+		
+		// add text to it
+		fac.createOMText(attributeValue, attr.arrayval[i]);
+		
+		// add it to parent
+		attributeElem.addChild(attributeValue);
+	    }
 	    break;
 	}
-	attributeValue.addAttribute(typeAttr);
 	
-	attributeElem.addChild(attributeValue);
 
 	return attributeElem;
     }

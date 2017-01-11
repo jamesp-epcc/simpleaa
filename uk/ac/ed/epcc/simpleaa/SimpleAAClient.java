@@ -179,11 +179,21 @@ public class SimpleAAClient {
 	    OMElement child = (OMElement)attributes.next();
 	    String attrname = getAttributeNamed(child, "Name");
 	    String friendlyname = getAttributeNamed(child, "FriendlyName");
-	    OMElement attrval = getChildNamed(child, "AttributeValue");
-	    if (attrval == null) {
+
+	    Iterator attrvalsit = child.getChildElements();
+	    if (!attrvalsit.hasNext()) {
 		throw new Exception("Missing AttributeValue element in SAML response");
 	    }
-	    String attrvalue = attrval.getText();
+
+	    // generate comma separated list if attribute has multiple values
+	    String attrvalue = "";
+	    while (attrvalsit.hasNext()) {
+		OMElement attrval = (OMElement)attrvalsit.next();
+		if (attrval.getLocalName().equals("AttributeValue")) {
+		    if (!attrvalue.equals("")) attrvalue = attrvalue + ",";
+		    attrvalue = attrvalue + attrval.getText();
+		}
+	    }
 	    attrvals.put(attrname, attrvalue);
 	}
 

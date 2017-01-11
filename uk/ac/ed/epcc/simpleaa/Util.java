@@ -67,6 +67,39 @@ public class Util {
 	return con;
     }
 
+    // adds the new attribute value to the result set, handling the case of the
+    // attribute already existing in there
+    private static void addAttributeValue(ArrayList<AttributeResult> result, String name, String value) {
+	int i, j;
+	for (i = 0; i < result.size(); i++) {
+	    if (result.get(i).name.equals(name)) {
+		// already got one with this name
+		AttributeResult res = result.get(i);
+		if (res.type == AttributeResult.ARRAY) {
+		    // it's already an array. add to it
+		    String[] newarr = new String[res.arrayval.length+1];
+		    for (j = 0; j < res.arrayval.length; j++) {
+			newarr[j] = res.arrayval[j];
+		    }
+		    newarr[newarr.length-1] = value;
+		    res.arrayval = newarr;
+		}
+		else if (res.type == AttributeResult.STRING) {
+		    // it's just a string. convert it into an array
+		    String[] newarr = new String[2];
+		    newarr[0] = res.stringval;
+		    newarr[1] = value;
+		    res.arrayval = newarr;
+		    res.type = AttributeResult.ARRAY;
+		}
+		return;
+	    }
+	}
+	// didn't find it there, create a new one
+	AttributeResult ares = new AttributeResult(name, value);
+	result.add(ares);
+    }
+
     // gets all attributes for the given user from the database
     public static ArrayList<AttributeResult> getAllAttributesForUser(String user) throws SQLException, ClassNotFoundException, UnknownSubjectException {
 
@@ -82,13 +115,13 @@ public class Util {
 	// now get all attributes for that user
 	ArrayList<AttributeResult> result = new ArrayList<AttributeResult>();
 	
-	ps = con.prepareStatement("select attribute_id,value from user_attributes where user_id=?");
+	ps = con.prepareStatement("select attribute_id,value from user_attributes where user_id=? order by attribute_id");
 	ps.setInt(1, userId);
 	rs = ps.executeQuery();
+
 	while (rs.next()) {
 	    int attrId = rs.getInt("attribute_id");
 	    String value = rs.getString("value");
-
 	    // look up attribute name
 	    PreparedStatement ps2 = con.prepareStatement("select name from attribute_types where id=?");
 	    ps2.setInt(1, attrId);
@@ -97,7 +130,8 @@ public class Util {
 	    String attrname = rs2.getString("name");
 	    ps2.close();
 
-	    result.add(new AttributeResult(attrname, value));
+	    //result.add(new AttributeResult(attrname, value));
+	    addAttributeValue(result, attrname, value);
 	}
 	ps.close();
 
@@ -106,7 +140,7 @@ public class Util {
     }
 
     // get named attribute for the given user from the database
-    public static String getAttributeForUser(String user, String attr) throws SQLException, ClassNotFoundException, UnknownSubjectException, InvalidAttributeNameException {
+    public static AttributeResult getAttributeForUser(String user, String attr) throws SQLException, ClassNotFoundException, UnknownSubjectException, InvalidAttributeNameException {
 	// first get user ID from database users table
 	Connection con = getDatabaseConnection();
 	PreparedStatement ps = con.prepareStatement("select id from users where name=?");
@@ -128,15 +162,18 @@ public class Util {
 	ps = con.prepareStatement("select value from user_attributes where user_id=? and attribute_id=?");
 	ps.setInt(1, userId);
 	ps.setInt(2, attrId);
-	String result = "";
+	ArrayList<String> values = new ArrayList<String>();
 	rs = ps.executeQuery();
-	if (rs.first()) {
-	    result = rs.getString("value");
+	while (rs.next()) {
+	    values.add(rs.getString("value"));
 	}
 	ps.close();
 	
 	con.close();
-	return result;
+
+	if (values.size() == 0) return new AttributeResult(attr, "");;
+	if (values.size() == 1) return new AttributeResult(attr, values.get(0));
+	return new AttributeResult(attr, values);
     }
 
     // get friendly name for an attribute, given its formal name
