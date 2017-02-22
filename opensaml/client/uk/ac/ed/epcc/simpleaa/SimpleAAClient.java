@@ -24,9 +24,13 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.HashMap;
 import java.util.Set;
+import java.util.TimeZone;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import javax.xml.stream.XMLStreamException;
+import java.security.SecureRandom;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import org.apache.axiom.om.OMAbstractFactory;
 import org.apache.axiom.om.OMElement;
@@ -44,9 +48,37 @@ public class SimpleAAClient {
 	new EndpointReference("http://localhost:8080/safeaa/");
     //new EndpointReference("http://localhost:8080/axis2/services/SimpleAAService");
 
-    // endpoint for updating the database
-    private static EndpointReference updateEPR =
-	new EndpointReference("http://localhost:8080/axis2/services/AADatabaseUpdater");
+    // get the current time in UTC as a string
+    private static String getTimeUTC() {
+	SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+	fmt.setTimeZone(TimeZone.getTimeZone("GMT"));
+	return fmt.format(new Date());
+    }
+
+    // generate a unique ID for a SAML request
+    private static String generateID() {
+	SecureRandom rng = new SecureRandom();
+	rng.setSeed((long)(Math.random() * 1000000000000.0));
+	rng.setSeed(System.nanoTime());
+
+	try {
+	    String hostname = InetAddress.getLocalHost().getHostName();
+	    rng.setSeed(hostname.getBytes());
+	}
+	catch (Exception ex) {
+	}
+
+	byte[] idbytes = new byte[16];
+	rng.nextBytes(idbytes);
+
+	int i;
+	StringBuilder sb = new StringBuilder(32);
+	for (i = 0; i < 16; i++) {
+	    sb.append(String.format("%02x", idbytes[i]));
+	}
+
+	return sb.toString();
+    }
 
     /*
      * Generate an XML SAML attribute query. Returns the root OMElement.
@@ -64,11 +96,11 @@ public class SimpleAAClient {
 	attrQuery.declareNamespace(samlNs);
 	attrQuery.declareNamespace(samlpNs);
 
-	OMAttribute idAttr = fac.createOMAttribute("ID", null, Util.generateID());
+	OMAttribute idAttr = fac.createOMAttribute("ID", null, generateID());
 	attrQuery.addAttribute(idAttr);
 	OMAttribute versionAttr = fac.createOMAttribute("Version", null, "2.0");
 	attrQuery.addAttribute(versionAttr);
-	OMAttribute issueInstantAttr = fac.createOMAttribute("IssueInstant", null, Util.getTimeUTC());
+	OMAttribute issueInstantAttr = fac.createOMAttribute("IssueInstant", null, getTimeUTC());
 	attrQuery.addAttribute(issueInstantAttr);
 
 	/*
@@ -182,7 +214,11 @@ public class SimpleAAClient {
 	    String attrstring = child.toString();
 	    attrstring = attrstring.replace(" xmlns:saml2=\"urn:oasis:names:tc:SAML:2.0:assertion\"", "");
 	    attrstring = attrstring.replace("saml2:", "saml:");
-	    System.out.println(attrstring);
+
+	    // don't print out empty attribute element if that's all we have
+	    if (!attrstring.equals("<saml:Attribute Name=\"groupMemberships\"/>")) {
+		System.out.println(attrstring);
+	    }
 
 	    String attrname = getAttributeNamed(child, "Name");
 	    String friendlyname = getAttributeNamed(child, "FriendlyName");
@@ -207,103 +243,12 @@ public class SimpleAAClient {
 	return attrvals;
     }
 
-    public static void addAttributeType(String name, String friendlyName) throws Exception {
-	AADatabaseUpdaterStub stub = new AADatabaseUpdaterStub("http://localhost:8080/axis2/services/AADatabaseUpdater");
-	AADatabaseUpdaterStub.AddAttributeType req = new AADatabaseUpdaterStub.AddAttributeType();
-	req.setArgs0(name);
-	req.setArgs1(friendlyName);	
-	AADatabaseUpdaterStub.AddAttributeTypeResponse res = stub.addAttributeType(req);
-	switch (res.get_return()) {
-	case 1:
-	    throw new Exception("Attribute type already exists");
-	case 2:
-	    throw new Exception("Internal server error");
-	}
-    }
-
-    public static void addUser(String name) throws Exception {
-	AADatabaseUpdaterStub stub = new AADatabaseUpdaterStub("http://localhost:8080/axis2/services/AADatabaseUpdater");
-	AADatabaseUpdaterStub.AddUser req = new AADatabaseUpdaterStub.AddUser();
-	req.setArgs0(name);
-	AADatabaseUpdaterStub.AddUserResponse res = stub.addUser(req);
-	switch (res.get_return()) {
-	case 3:
-	    throw new Exception("User already exists");
-	case 2:
-	    throw new Exception("Internal server error");
-	}
-    }
-
-    public static void updateAttributeForUser(String user, String attr, String value) throws Exception {
-	AADatabaseUpdaterStub stub = new AADatabaseUpdaterStub("http://localhost:8080/axis2/services/AADatabaseUpdater");
-	AADatabaseUpdaterStub.SetAttributeForUser req = new AADatabaseUpdaterStub.SetAttributeForUser();
-	req.setArgs0(user);
-	req.setArgs1(attr);
-	req.setArgs2(value);
-	AADatabaseUpdaterStub.SetAttributeForUserResponse res = stub.setAttributeForUser(req);
-	switch (res.get_return()) {
-	case 2:
-	    throw new Exception("Internal server error");
-	case 4:
-	    throw new Exception("User name not recognised");
-	case 5:
-	    throw new Exception("Attribute name not recognised");
-	}
-    }
-
-    public static void addAttributeForUser(String user, String attr, String value) throws Exception {
-	AADatabaseUpdaterStub stub = new AADatabaseUpdaterStub("http://localhost:8080/axis2/services/AADatabaseUpdater");
-	AADatabaseUpdaterStub.AddAttributeForUser req = new AADatabaseUpdaterStub.AddAttributeForUser();
-	req.setArgs0(user);
-	req.setArgs1(attr);
-	req.setArgs2(value);
-	AADatabaseUpdaterStub.AddAttributeForUserResponse res = stub.addAttributeForUser(req);
-	switch (res.get_return()) {
-	case 2:
-	    throw new Exception("Internal server error");
-	case 4:
-	    throw new Exception("User name not recognised");
-	case 5:
-	    throw new Exception("Attribute name not recognised");
-	}
-    }
-
-    public static void removeAttributeForUser(String user, String attr, String value) throws Exception {
-	AADatabaseUpdaterStub stub = new AADatabaseUpdaterStub("http://localhost:8080/axis2/services/AADatabaseUpdater");
-	AADatabaseUpdaterStub.RemoveAttributeForUser req = new AADatabaseUpdaterStub.RemoveAttributeForUser();
-	req.setArgs0(user);
-	req.setArgs1(attr);
-	req.setArgs2(value);
-	AADatabaseUpdaterStub.RemoveAttributeForUserResponse res = stub.removeAttributeForUser(req);
-	switch (res.get_return()) {
-	case 2:
-	    throw new Exception("Internal server error");
-	case 4:
-	    throw new Exception("User name not recognised");
-	case 5:
-	    throw new Exception("Attribute name not recognised");
-	}
-    }
-
-    public static void deleteUser(String name) throws Exception {
-	AADatabaseUpdaterStub stub = new AADatabaseUpdaterStub("http://localhost:8080/axis2/services/AADatabaseUpdater");
-	AADatabaseUpdaterStub.DeleteUser req = new AADatabaseUpdaterStub.DeleteUser();
-	req.setArgs0(name);
-	AADatabaseUpdaterStub.DeleteUserResponse res = stub.deleteUser(req);
-	switch (res.get_return()) {
-	case 2:
-	    throw new Exception("Internal server error");
-	case 4:
-	    throw new Exception("User name not recognised");
-	}
-    }
-
     public static void main(String[] args) {
 	int i;
 
 	if (args.length < 1) {
 	    System.out.println("Usage: SimpleAAClient <operation> <parameters>");
-	    System.out.println("  (valid operations are query, addattrtype, adduser, updateuserattr, adduserattr, removeuserattr, deleteuser)");
+	    System.out.println("  (valid operations are query)");
 	    return;
 	}
 	String operation = args[0];
@@ -327,48 +272,6 @@ public class SimpleAAClient {
 		    String key = it.next();
 		    //System.out.println(key + " = " + result.get(key));
 		}
-	    }
-	    else if (operation.equals("addattrtype")) {
-		if (args.length != 3) {
-		    System.out.println("Usage: SimpleAAClient addattrtype <formal name> <friendly name>");
-		    return;
-		}
-		addAttributeType(args[1], args[2]);
-	    }
-	    else if (operation.equals("adduser")) {
-		if (args.length != 2) {
-		    System.out.println("Usage: SimpleAAClient adduser <name>");
-		    return;
-		}
-		addUser(args[1]);
-	    }
-	    else if (operation.equals("updateuserattr")) {
-		if (args.length != 4) {
-		    System.out.println("Usage: SimpleAAClient updateuserattr <user name> <attribute name> <value>");
-		    return;
-		}
-		updateAttributeForUser(args[1], args[2], args[3]);
-	    }
-	    else if (operation.equals("adduserattr")) {
-		if (args.length != 4) {
-		    System.out.println("Usage: SimpleAAClient adduserattr <user name> <attribute name> <value>");
-		    return;
-		}
-		addAttributeForUser(args[1], args[2], args[3]);
-	    }
-	    else if (operation.equals("removeuserattr")) {
-		if (args.length != 4) {
-		    System.out.println("Usage: SimpleAAClient removeuserattr <user name> <attribute name> <value>");
-		    return;
-		}
-		removeAttributeForUser(args[1], args[2], args[3]);
-	    }
-	    else if (operation.equals("deleteuser")) {
-		if (args.length != 2) {
-		    System.out.println("Usage: SimpleAAClient deleteuser <name>");
-		    return;
-		}
-		deleteUser(args[1]);
 	    }
 	    else {
 		System.err.println("Unrecognised operation type '" + operation + "'");

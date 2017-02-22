@@ -1,0 +1,4 @@
+This code implements a simple attribute authority based on OpenSAML.
+The build system is based on Maven. To create the .war file for deployment into Tomcat, run "mvn package".
+
+AttributeRetriever.java should first be edited to actually return real attribute results - the supplied implementation simply returns null.
