@@ -2,6 +2,10 @@
 
 An XML web service that provides a minimalist SAML Attribute Authority. The service runs in Apache Axis 2 within Tomcat, and responds to SAML attribute queries via SOAP. The attribute values are retrieved from a MySQL database.
 
+A more up-to-date version of the attribute authority, based on the OpenSAML library, is now included in the `safeaa` directory.
+
+A script for querying the attribute authority via the web service client is included in `runaaclient.sh`.
+
 
 ## Deploying the service
 
